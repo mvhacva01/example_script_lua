@@ -27,7 +27,31 @@ function run_command(command, max_retry)
 end
 
 function send_bypass_captcha(apikey, type_captcha, path_image) -- type_captcha = TIKTOK_ROTATE_APP | TIKTOK_OBJ | ALL_CAPTCHA_SLIDE
-    local command = 'curl --form \"Image=@' .. path_image .. '" "https://hmcaptcha.com/recognition?Type=' .. type_captcha .. '&apikey=' .. apikey .. '"'
+    local command = 'curl --form "Image=@' .. path_image .. '" "https://hmcaptcha.com/recognition?Type=' .. type_captcha .. '&apikey=' .. apikey .. '"'
+    local res_json, status = run_command(command, 3)
+    local decodedJson = json.parse(res_json)
+    if decodedJson["Code"] ~= 0 then
+        error(decodedJson["Message"])
+    end
+    local taskid = decodedJson["TaskId"]
+    
+    local Data
+    while true do
+        sleep(1) -- Chờ 1 giây trước khi gửi lại
+        command = 'curl "https://hmcaptcha.com/getResult?apikey=' .. apikey .. '&taskid=' .. taskid .. '"'
+        res_json, status = run_command(command, 3)
+        decodedJson = json.parse(res_json)
+        if decodedJson["Status"] == "SUCCESS" or decodedJson["Status"] == "ERROR" then
+            Data = decodedJson["Data"]
+            break
+        end
+    end
+    
+    return Data
+end
+
+function send_bypass_captcha_2(apikey, type_captcha, path_image) -- type_captcha = TIKTOK_ROTATE_APP | TIKTOK_OBJ | ALL_CAPTCHA_SLIDE
+    local command = 'curl --location --request POST "https://hmcaptcha.com/recognition?Type=' .. type_captcha .. '&apikey=' .. apikey .. '" --header "Content-Type: image/jpeg" --data-binary "@' .. path_image .. '"'
     local res_json, status = run_command(command, 3)
     local decodedJson = json.parse(res_json)
     if decodedJson["Code"] ~= 0 then
@@ -51,9 +75,9 @@ function send_bypass_captcha(apikey, type_captcha, path_image) -- type_captcha =
 end
 
 -- using
-local apikey = "admin-MWlzWAAdAmuZIJidhVdUHndYWyk9fy38"
+local apikey = "admin-xxx"
 local type_captcha = "TIKTOK_ROTATE_APP" -- | TIKTOK_OBJ | ALL_CAPTCHA_SLIDE
-local path_image = "1.png"
+local path_image = "C:\\Users\\mvhac\\OneDrive\\Desktop\\Project_js\\ServerBypassCaptcha\\__example\\1.png"
 
 local result = send_bypass_captcha(apikey, type_captcha, path_image)
 print("=====================")
